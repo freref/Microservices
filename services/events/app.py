@@ -1,11 +1,19 @@
 from fastapi import FastAPI, HTTPException
+from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi.responses import JSONResponse
 from fastapi import FastAPI, Body
 
 app = FastAPI()
+
+class Event(BaseModel):
+    date: str
+    organizer: str
+    title: str
+    description: str = None
+    is_public: bool
 
 def get_db_connection():
     try:
@@ -21,6 +29,24 @@ def get_db_connection():
         print(e)
         return None
 
-@app.get("/")
-def read_root():
-    return {"Hello": "World"}
+@app.post("/events/")
+async def create_event(event: Event):
+    conn = get_db_connection()
+    if conn is None:
+        return JSONResponse(content={"error": "Unable to connect to the database"}, status_code=500)
+    
+    cur = conn.cursor()
+    try:
+        cur.execute(
+            "INSERT INTO events (date, organizer, title, description, is_public) VALUES (%s, %s, %s, %s, %s) RETURNING id;",
+            (event.date, event.organizer, event.title, event.description, event.is_public)
+        )
+        event_id = cur.fetchone()[0]
+        conn.commit()
+        return JSONResponse(content={"message": "Event created successfully", "event_id": event_id}, status_code=200)
+    except psycopg2.Error as error:
+        conn.rollback()
+        return JSONResponse(content={"error": "Failed to create event", "detail": str(error)}, status_code=400)
+    finally:
+        cur.close()
+        conn.close()

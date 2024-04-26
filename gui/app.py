@@ -4,6 +4,7 @@ import requests
 app = Flask(__name__)
 
 AUTH_SERVICE_URL = "http://auth:5000"
+EVENTS_SERVICE_URL = "http://events:5000"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
