@@ -14,12 +14,12 @@ services:
     depends_on:
       - auth_persistence
     environment:
-      - DATABASE_URL=postgresql://user:password@auth_persistence:5432/users
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+      - DATABASE_HOST=auth_persistence
 
   auth_persistence:
     image: postgres:13
-    ports:
-      - 5432:5432
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
