@@ -27,5 +27,27 @@ services:
       - users_persistence-data:/var/lib/postgresql/data
       - ./services/users/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
+  # Events Service
+  events:
+    build: ./services/events
+    ports:
+      - 5003:5000
+    depends_on:
+      - events_persistence
+    environment:
+      - POSTGRES_USER=event
+      - POSTGRES_PASSWORD=password
+      - DATABASE_HOST=events_persistence
+  
+  events_persistence:
+    image: postgres:13
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - events_persistence-data:/var/lib/postgresql/data
+      - ./services/events/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
 volumes:
   users_persistence-data:
+  events_persistence-data:
