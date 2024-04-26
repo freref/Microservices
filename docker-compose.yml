@@ -1,0 +1,31 @@
+version: "3.9"
+services:
+  # GUI Service
+  gui:
+    build: ./gui
+    ports:
+      - 5001:5000
+
+  # Auth Service
+  auth:
+    build: ./services/auth
+    ports:
+      - 5002:5000
+    depends_on:
+      - auth_persistence
+    environment:
+      - DATABASE_URL=postgresql://user:password@auth_persistence:5432/users
+
+  auth_persistence:
+    image: postgres:13
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=password
+    volumes:
+      - auth_persistence-data:/var/lib/postgresql/data
+      - ./services/auth/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+
+volumes:
+  auth_persistence-data:
