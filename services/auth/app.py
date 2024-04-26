@@ -10,11 +10,11 @@ app = FastAPI()
 def get_db_connection():
     try:
         return psycopg2.connect(
-            dbname='users',
+            dbname='auth',
             user=os.environ['POSTGRES_USER'],
             password=os.environ['POSTGRES_PASSWORD'],
             host=os.environ['DATABASE_HOST'],
-            port='5432'  # Standard PostgreSQL port
+            port='5432'
         )
     except psycopg2.Error as e:
         print("Unable to connect to the database")
@@ -29,7 +29,7 @@ def register(username: str = Body(...), password: str = Body(...)):
     
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("INSERT INTO users (username, password) VALUES (%s, %s) RETURNING id;", (username, password))
+        cur.execute("INSERT INTO auth (username, password) VALUES (%s, %s) RETURNING id;", (username, password))
         user_id = cur.fetchone()['id']
         conn.commit()
     except psycopg2.Error as e:
@@ -49,7 +49,7 @@ def login(username: str = Body(...), password: str = Body(...)):
     
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("SELECT id FROM users WHERE username = %s AND password = %s;", (username, password))
+        cur.execute("SELECT id FROM auth WHERE username = %s AND password = %s;", (username, password))
         user = cur.fetchone()
         if not user:
             return JSONResponse(content={"error": "Invalid username or password"}, status_code=401)

@@ -3,7 +3,7 @@ import requests
 
 app = Flask(__name__)
 
-USERS_SERVICE_URL = "http://users:5000"
+AUTH_SERVICE_URL = "http://auth:5000"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -117,7 +117,7 @@ def view_event(eventid):
 def login():
     req_username, req_password = request.form['username'], request.form['password']
 
-    response = requests.post(f"{USERS_SERVICE_URL}/login/", json={
+    response = requests.post(f"{AUTH_SERVICE_URL}/login/", json={
         "username": req_username,
         "password": req_password
     })
@@ -138,7 +138,7 @@ def register():
 
     req_username, req_password = request.form['username'], request.form['password']
 
-    response = requests.post(f"{USERS_SERVICE_URL}/register/", json={
+    response = requests.post(f"{AUTH_SERVICE_URL}/register/", json={
         "username": req_username,
         "password": req_password
     })

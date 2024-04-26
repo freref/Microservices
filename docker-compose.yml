@@ -6,26 +6,28 @@ services:
     ports:
       - 5001:5000
 
-  # Users Service
-  users:
-    build: ./services/users
+  # Auth Service
+  auth:
+    build: ./services/auth
     ports:
       - 5002:5000
     depends_on:
-      - users_persistence
+      - auth_persistence
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
-      - DATABASE_HOST=users_persistence
+      - DATABASE_HOST=auth_persistence
 
-  users_persistence:
+  auth_persistence:
     image: postgres:13
+    ports:
+      - 5432:5432
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
     volumes:
-      - users_persistence-data:/var/lib/postgresql/data
-      - ./services/users/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - auth_persistence-data:/var/lib/postgresql/data
+      - ./services/auth/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
   # Events Service
   events:
@@ -41,6 +43,8 @@ services:
   
   events_persistence:
     image: postgres:13
+    ports:
+      - 5433:5432
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
@@ -49,5 +53,5 @@ services:
       - ./services/events/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
-  users_persistence-data:
+  auth_persistence-data:
   events_persistence-data:
