@@ -3,8 +3,6 @@ import requests
 
 app = Flask(__name__)
 
-AUTH_SERVICE_URL = "http://auth:5000"
-EVENTS_SERVICE_URL = "http://events:5000"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -46,7 +44,7 @@ def home():
 
 @app.route("/event", methods=['POST'])
 def create_event():
-    title, description, publicprivate, invites = request.form['title'], request.form['description'], request.form['publicprivate'], request.form['invites']
+    title, description, date, publicprivate, invites = request.form['title'], request.form['description'], request.form['date'], request.form['publicprivate'], request.form['invites']
     #==========================
     # FEATURE (create an event)
     #
@@ -118,33 +116,39 @@ def view_event(eventid):
 def login():
     req_username, req_password = request.form['username'], request.form['password']
 
-    response = requests.post(f"{AUTH_SERVICE_URL}/login/", json={
-        "username": req_username,
-        "password": req_password
-    })
+    # ================================
+    # FEATURE (login)
+    #
+    # send the username and password to the microservice
+    # microservice returns True if correct combination, False if otherwise.
+    # Also pay attention to the status code returned by the microservice.
+    # ================================
+    success = True  # TODO: call
 
-    success = succesful_request(response)
     save_to_session('success', success)
-
     if success:
         global username, password
 
         username = req_username
         password = req_password
-    
-    return render_template('login.html', username=username, password=password, success=success, login=True)
+
+    return redirect('/')
 
 @app.route("/register", methods=['POST'])
 def register():
 
     req_username, req_password = request.form['username'], request.form['password']
 
-    response = requests.post(f"{AUTH_SERVICE_URL}/register/", json={
-        "username": req_username,
-        "password": req_password
-    })
+    # ================================
+    # FEATURE (register)
+    #
+    # send the username and password to the microservice
+    # microservice returns True if registration is succesful, False if otherwise.
+    #
+    # Registration is successful if a user with the same username doesn't exist yet.
+    # ================================
 
-    success = succesful_request(response)
+    success = True  # TODO: call
     save_to_session('success', success)
 
     if success:
@@ -152,8 +156,8 @@ def register():
 
         username = req_username
         password = req_password
-    
-    return render_template('login.html', username=username, password=password, success=success, registration=True)
+
+    return redirect('/')
 
 @app.route('/invites', methods=['GET'])
 def invites():

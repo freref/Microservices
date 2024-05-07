@@ -18,11 +18,11 @@
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
-        {% if (success == false and login) %}
+        {% if success == false %}
         <div class="alert alert-danger " role="alert">
           <strong>Login Failed!</strong> Username + password combination is invalid.
         </div>
-        {% elif (success == true and login) %}
+        {% elif success == true %}
         <div class="alert alert-success" role="alert">
           Login succesful!
         </div>
@@ -43,11 +43,11 @@
             </div>
             <button type="submit" class="btn btn-primary">Submit</button>
         </form>
-        {% if (success == false and registration) %}
+        {% if success == false %}
         <div class="alert alert-danger " role="alert">
             <strong>Registration Failed!</strong> A user with this username already exists.
         </div>
-        {% elif (success == true and registration) %}
+        {% elif success == true %}
         <div class="alert alert-success" role="alert">
           Registered successfully!
         </div>
