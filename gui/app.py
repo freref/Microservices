@@ -269,16 +269,32 @@ def register():
     
     return make_response(render_template('login.html', username=username, password=password, success=success, registration=True), response.status_code)
 
+#==============================
+# FEATURE (list invites)
+#
+# retrieve a list with all events you are invited to and have not yet responded to
+#==============================
 @app.route('/invites', methods=['GET'])
 def invites():
-    #==============================
-    # FEATURE (list invites)
-    #
-    # retrieve a list with all events you are invited to and have not yet responded to
-    #==============================
+    response = requests.get(f"{INVITATIONS_SERVICE_URL}/invitations/", json={"invitee": username, "status": "pending"})
 
-    my_invites = [(1, 'Test event', 'Tomorrow', 'Benjamin', 'Private')] # TODO: process
-    return render_template('invites.html', username=username, password=password, invites=my_invites)
+    if response.status_code != 200:
+        return make_response(response.content, response.status_code)
+    
+    my_invites = response.json().get('invitations', [])
+    invites = []
+
+    for invite in my_invites:
+        event_id = invite['event_id']
+        event_response = requests.get(f"{EVENTS_SERVICE_URL}/events/", json={"id": event_id})
+
+        if event_response.status_code == 200:
+            event = event_response.json().get('events', [])[0] 
+            invites.append((event_id, event['title'], event['date'], event['organizer'], event['is_public']))
+        else:
+            return make_response(event_response.content, event_response.status_code)
+
+    return make_response(render_template('invites.html', username=username, password=password, invites=invites), response.status_code)
 
 @app.route('/invites', methods=['POST'])
 def process_invite():

@@ -18,10 +18,12 @@ class Event(BaseModel):
 
 class EventRequest(BaseModel):
     is_public: Optional[bool] = None
+    id: Optional[int] = None
     class Config:
         schema_extra = {
             "example": {
                 "is_public": True,
+                "id": 1,
             }
         }
 
@@ -74,6 +76,10 @@ async def get_events(event_request: EventRequest):
     if event_request.is_public is not None:
         conditions.append("is_public = %s")
         params.append(event_request.is_public)
+
+    if event_request.id is not None:
+        conditions.append("id = %s")
+        params.append(event_request.id)
     
     if conditions:
         query += " WHERE " + " AND ".join(conditions)

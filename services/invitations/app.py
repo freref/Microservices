@@ -5,6 +5,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Body
+from typing import Optional
 
 app = FastAPI()
 
@@ -12,6 +13,16 @@ class Invitation(BaseModel):
     event_id: int
     invitee: str
     status: str = None
+
+class InvitationRequest(BaseModel):
+    invitee: Optional[str] = None
+    status: Optional[str] = None
+    class Config:
+        schema_extra = {
+            "example": {
+                "invitee": "user1",
+            }
+        }
 
 def get_db_connection():
     try:
@@ -45,6 +56,39 @@ async def create_invitation(invitation: Invitation):
     except psycopg2.Error as error:
         conn.rollback()
         return JSONResponse(content={"error": "Failed to create invitation", "detail": str(error)}, status_code=400)
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/invitations/")
+async def get_invitations(invitation_request: InvitationRequest):
+    conn = get_db_connection()
+    if conn is None:
+        return JSONResponse(content={"error": "Unable to connect to the database"}, status_code=500)
+    
+    query = "SELECT id, event_id, invitee, status FROM invitations"
+    params = []
+    conditions = []
+    
+    if invitation_request.invitee is not None:
+        conditions.append("invitee = %s")
+        params.append(invitation_request.invitee)
+
+    if invitation_request.status is not None:
+        conditions.append("status = %s")
+        params.append(invitation_request.status)
+    
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute(query, tuple(params))
+        invitations = cur.fetchall()
+        return JSONResponse(content={"invitations": invitations}, status_code=200)
+    except psycopg2.Error as error:
+        conn.rollback()
+        return JSONResponse(content={"error": "Failed to fetch invitations", "detail": str(error)}, status_code=400)
     finally:
         cur.close()
         conn.close()
