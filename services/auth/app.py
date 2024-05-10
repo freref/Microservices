@@ -39,7 +39,7 @@ def register(username: str = Body(...), password: str = Body(...)):
         cur.close()
         conn.close()
 
-    return JSONResponse(content={"message": "User registered successfully", "user_id": user_id}, status_code=200)
+    return JSONResponse(content={"message": "User registered successfully", "user_id": user_id}, status_code=201)
 
 @app.post("/login/")
 def login(username: str = Body(...), password: str = Body(...)):

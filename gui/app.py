@@ -1,7 +1,9 @@
-from flask import Flask, render_template, redirect, request, url_for
+from flask import Flask, render_template, redirect, request, url_for, make_response
 import requests
+from flasgger import Swagger
 
 app = Flask(__name__)
+swagger = Swagger(app)
 
 AUTH_SERVICE_URL = "http://auth:5000"
 EVENTS_SERVICE_URL = "http://events:5000"
@@ -47,6 +49,16 @@ def home():
 @app.route("/event", methods=['POST'])
 def create_event():
     title, description, date, publicprivate, invites = request.form['title'], request.form['description'], request.form['date'], request.form['publicprivate'], request.form['invites']
+
+    response = requests.post(f"{EVENTS_SERVICE_URL}/events/", json={
+        "date": date,
+        "organizer": username,
+        "title": title,
+        "description": description,
+        "is_public": publicprivate == "public"
+    })
+
+    
     #==========================
     # FEATURE (create an event)
     #
@@ -116,6 +128,26 @@ def view_event(eventid):
 
 @app.route("/login", methods=['POST'])
 def login():
+    """
+    User Login
+    ---
+    tags:
+        - Auth
+    parameters:
+        - name: username
+          in: formData
+          type: string
+          required: true
+        - name: password
+          in: formData
+          type: string
+          required: true
+    responses:
+        200:
+            description: Login successful
+        401:
+            description: Login failed
+    """
     req_username, req_password = request.form['username'], request.form['password']
 
     response = requests.post(f"{AUTH_SERVICE_URL}/login/", json={
@@ -132,11 +164,30 @@ def login():
         username = req_username
         password = req_password
     
-    return render_template('login.html', username=username, password=password, success=success, login=True)
+    return make_response(render_template('login.html', username=username, password=password, success=success, login=True), response.status_code)
 
 @app.route("/register", methods=['POST'])
 def register():
-
+    """
+    User Registration
+    ---
+    tags:
+        - Auth
+    parameters:
+        - name: username
+          in: formData
+          type: string
+          required: true
+        - name: password
+          in: formData
+          type: string
+          required: true
+    responses:
+        201:
+            description: Registration successful
+        400:
+            description: Registration failed
+    """
     req_username, req_password = request.form['username'], request.form['password']
 
     response = requests.post(f"{AUTH_SERVICE_URL}/register/", json={
@@ -153,7 +204,7 @@ def register():
         username = req_username
         password = req_password
     
-    return render_template('login.html', username=username, password=password, success=success, registration=True)
+    return make_response(render_template('login.html', username=username, password=password, success=success, registration=True), response.status_code)
 
 @app.route('/invites', methods=['GET'])
 def invites():
