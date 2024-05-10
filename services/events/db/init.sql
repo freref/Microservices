@@ -1,10 +1,6 @@
--- Create the 'events' database
 CREATE DATABASE events;
-
--- Connect to the 'events' database
 \c events;
 
--- Create the 'events' table
 CREATE TABLE events (
     id SERIAL PRIMARY KEY,
     date DATE NOT NULL,
