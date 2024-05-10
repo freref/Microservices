@@ -84,6 +84,7 @@ async def get_events(event_request: EventRequest):
         events = cur.fetchall()
         return JSONResponse(content={"events": events}, status_code=200)
     except psycopg2.Error as error:
+        conn.rollback()
         return JSONResponse(content={"error": "Failed to fetch events", "detail": str(error)}, status_code=400)
     finally:
         cur.close()

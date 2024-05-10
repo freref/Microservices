@@ -53,6 +53,9 @@ def login(username: str = Body(...), password: str = Body(...)):
         user = cur.fetchone()
         if not user:
             return JSONResponse(content={"error": "Invalid username or password"}, status_code=401)
+    except psycopg2.Error as e:
+        conn.rollback()
+        return JSONResponse(content={"error": "Failed to login", "detail": str(e)}, status_code=400)
     finally:
         cur.close()
         conn.close()

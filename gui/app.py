@@ -22,6 +22,7 @@ swagger = Swagger(app, config=swagger_config)
 
 AUTH_SERVICE_URL = "http://auth:5000"
 EVENTS_SERVICE_URL = "http://events:5000"
+INVITATIONS_SERVICE_URL = "http://invitations:5000"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -114,8 +115,19 @@ def create_event():
     if (response.status_code != 201):
         return make_response("Event creation failed", response.status_code)
 
-    # TODO: send invites
+    id = response.json().get('id', None)
+    invitees = invites.split(';')
 
+    for invitee in invitees:
+        response = requests.post(f"{INVITATIONS_SERVICE_URL}/invitations/", json={
+            "event_id": id,
+            "invitee": invitee,
+            "status": "pending"
+        })
+
+        if (response.status_code != 201):
+            return make_response("Invitation failed", response.status_code)
+    
     return redirect('/')
 
 
