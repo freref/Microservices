@@ -6,15 +6,15 @@ swagger_config = {
     "headers": [],
     "specs": [
         {
-            "endpoint": 'apispec_1',
-            "route": '/apispec_1.json',
+            "endpoint": "apispec_1",
+            "route": "/apispec_1.json",
             "rule_filter": lambda rule: True,
             "model_filter": lambda tag: True,
         }
     ],
     "static_url_path": "/flasgger_static",
     "swagger_ui": True,
-    "specs_route": "/docs/"
+    "specs_route": "/docs/",
 }
 
 app = Flask(__name__)
@@ -36,7 +36,9 @@ def save_to_session(key, value):
 
 
 def load_from_session(key):
-    return session_data.pop(key) if key in session_data else None  # Pop to ensure that it is only used once
+    return (
+        session_data.pop(key) if key in session_data else None
+    )  # Pop to ensure that it is only used once
 
 
 def succesful_request(r):
@@ -54,21 +56,31 @@ def home():
     global username
 
     if username is None:
-        return render_template('login.html', username=username, password=password)
+        return render_template("login.html", username=username, password=password)
     else:
-        response = requests.get(f"{EVENTS_SERVICE_URL}/events/", json={"is_public": True})
+        response = requests.get(
+            f"{EVENTS_SERVICE_URL}/events/", json={"is_public": True}
+        )
         # Destructure the response to get the events
-        events = response.json().get('events', [])
-        public_events = [(event['title'], event['date'], event['organizer']) for event in events]
+        events = response.json().get("events", [])
+        public_events = [
+            (event["title"], event["date"], event["organizer"]) for event in events
+        ]
 
-        return make_response(render_template('home.html', username=username, password=password, events = public_events), response.status_code)
-    
-#==========================
+        return make_response(
+            render_template(
+                "home.html", username=username, password=password, events=public_events
+            ),
+            response.status_code,
+        )
+
+
+# ==========================
 # FEATURE (create an event)
 #
 # Given some data, create an event and send out the invites.
-#==========================
-@app.route("/event", methods=['POST'])
+# ==========================
+@app.route("/event", methods=["POST"])
 def create_event():
     """
     Create an event
@@ -102,47 +114,56 @@ def create_event():
         400:
             description: Event creation failed
     """
-    title, description, date, publicprivate, invites = request.form['title'], request.form['description'], request.form['date'], request.form['publicprivate'], request.form['invites']
+    title, description, date, publicprivate, invites = (
+        request.form["title"],
+        request.form["description"],
+        request.form["date"],
+        request.form["publicprivate"],
+        request.form["invites"],
+    )
 
-    response = requests.post(f"{EVENTS_SERVICE_URL}/events/", json={
-        "date": date,
-        "organizer": username,
-        "title": title,
-        "description": description,
-        "is_public": publicprivate == "public"
-    })
+    response = requests.post(
+        f"{EVENTS_SERVICE_URL}/events/",
+        json={
+            "date": date,
+            "organizer": username,
+            "title": title,
+            "description": description,
+            "is_public": publicprivate == "public",
+        },
+    )
 
-    if (response.status_code != 201):
+    if response.status_code != 201:
         return make_response(response.content, response.status_code)
 
-    event_id = response.json().get('event_id', None)
-    invitees = invites.split(';')
+    event_id = response.json().get("event_id", None)
+    invitees = invites.split(";")
 
     for invitee in invitees:
-        response = requests.post(f"{INVITATIONS_SERVICE_URL}/invitations/", json={
-            "event_id": event_id,
-            "invitee": invitee,
-            "status": "Pending"
-        })
+        response = requests.post(
+            f"{INVITATIONS_SERVICE_URL}/invitations/",
+            json={"event_id": event_id, "invitee": invitee, "status": "Pending"},
+        )
 
-        if (response.status_code != 201):
+        if response.status_code != 201:
             return make_response(response.content, response.status_code)
-    
-    response = requests.post(f"{INVITATIONS_SERVICE_URL}/invitations/", json={
-        "event_id": event_id,
-        "invitee": username,
-        "status": "Participating"
-    })
 
-    if (response.status_code != 201):
+    response = requests.post(
+        f"{INVITATIONS_SERVICE_URL}/invitations/",
+        json={"event_id": event_id, "invitee": username, "status": "Participating"},
+    )
+
+    if response.status_code != 201:
         return make_response(response.content, response.status_code)
-    
-    return redirect('/')
+
+    return redirect("/")
 
 
-@app.route('/calendar', methods=['GET', 'POST'])
+@app.route("/calendar", methods=["GET", "POST"])
 def calendar():
-    calendar_user = request.form['calendar_user'] if 'calendar_user' in request.form else username
+    calendar_user = (
+        request.form["calendar_user"] if "calendar_user" in request.form else username
+    )
 
     # ================================
     # FEATURE (calendar based on username)
@@ -151,35 +172,51 @@ def calendar():
     # Try to keep in mind failure of the underlying microservice
     # =================================
 
-    success = True # TODO: this might change depending on if the calendar is shared with you
+    success = (
+        True  # TODO: this might change depending on if the calendar is shared with you
+    )
 
     if success:
-        calendar = [(1, 'Test event', 'Tomorrow', 'Benjamin', 'Going', 'Public')]  # TODO: call
+        calendar = [
+            (1, "Test event", "Tomorrow", "Benjamin", "Going", "Public")
+        ]  # TODO: call
     else:
         calendar = None
 
+    return render_template(
+        "calendar.html",
+        username=username,
+        password=password,
+        calendar_user=calendar_user,
+        calendar=calendar,
+        success=success,
+    )
 
-    return render_template('calendar.html', username=username, password=password, calendar_user=calendar_user, calendar=calendar, success=success)
 
-@app.route('/share', methods=['GET'])
+@app.route("/share", methods=["GET"])
 def share_page():
-    return render_template('share.html', username=username, password=password, success=None)
+    return render_template(
+        "share.html", username=username, password=password, success=None
+    )
 
-@app.route('/share', methods=['POST'])
+
+@app.route("/share", methods=["POST"])
 def share():
-    share_user = request.form['username']
+    share_user = request.form["username"]
 
-    #========================================
+    # ========================================
     # FEATURE (share a calendar with a user)
     #
     # Share your calendar with a certain user. Return success = true / false depending on whether the sharing is succesful.
-    #========================================
+    # ========================================
 
     success = True  # TODO
-    return render_template('share.html', username=username, password=password, success=success)
+    return render_template(
+        "share.html", username=username, password=password, success=success
+    )
 
 
-@app.route('/event/<eventid>')
+@app.route("/event/<eventid>")
 def view_event(eventid):
 
     # ================================
@@ -189,16 +226,25 @@ def view_event(eventid):
     # Try to keep in mind failure of the underlying microservice
     # =================================
 
-    success = True # TODO: this might change depending on whether you can see the event (public, or private but invited)
+    success = True  # TODO: this might change depending on whether you can see the event (public, or private but invited)
 
     if success:
-        event = ['Test event', 'Tomorrow', 'Benjamin', 'Public', [['Benjamin', 'Participating'], ['Fabian', 'Maybe Participating']]]  # TODO: populate this with details from the actual event
+        event = [
+            "Test event",
+            "Tomorrow",
+            "Benjamin",
+            "Public",
+            [["Benjamin", "Participating"], ["Fabian", "Maybe Participating"]],
+        ]  # TODO: populate this with details from the actual event
     else:
         event = None  # No success, so don't fetch the data
 
-    return render_template('event.html', username=username, password=password, event=event, success = success)
+    return render_template(
+        "event.html", username=username, password=password, event=event, success=success
+    )
 
-@app.route("/login", methods=['POST'])
+
+@app.route("/login", methods=["POST"])
 def login():
     """
     User Login
@@ -220,25 +266,35 @@ def login():
         401:
             description: Login failed
     """
-    req_username, req_password = request.form['username'], request.form['password']
+    req_username, req_password = request.form["username"], request.form["password"]
 
-    response = requests.post(f"{AUTH_SERVICE_URL}/login/", json={
-        "username": req_username,
-        "password": req_password
-    })
+    response = requests.post(
+        f"{AUTH_SERVICE_URL}/login/",
+        json={"username": req_username, "password": req_password},
+    )
 
     success = succesful_request(response)
-    save_to_session('success', success)
+    save_to_session("success", success)
 
     if success:
         global username, password
 
         username = req_username
         password = req_password
-    
-    return make_response(render_template('login.html', username=username, password=password, success=success, login=True), response.status_code)
 
-@app.route("/register", methods=['POST'])
+    return make_response(
+        render_template(
+            "login.html",
+            username=username,
+            password=password,
+            success=success,
+            login=True,
+        ),
+        response.status_code,
+    )
+
+
+@app.route("/register", methods=["POST"])
 def register():
     """
     User Registration
@@ -260,64 +316,98 @@ def register():
         400:
             description: Registration failed
     """
-    req_username, req_password = request.form['username'], request.form['password']
+    req_username, req_password = request.form["username"], request.form["password"]
 
-    response = requests.post(f"{AUTH_SERVICE_URL}/register/", json={
-        "username": req_username,
-        "password": req_password
-    })
+    response = requests.post(
+        f"{AUTH_SERVICE_URL}/register/",
+        json={"username": req_username, "password": req_password},
+    )
 
     success = succesful_request(response)
-    save_to_session('success', success)
+    save_to_session("success", success)
 
     if success:
         global username, password
 
         username = req_username
         password = req_password
-    
-    return make_response(render_template('login.html', username=username, password=password, success=success, registration=True), response.status_code)
 
-#==============================
+    return make_response(
+        render_template(
+            "login.html",
+            username=username,
+            password=password,
+            success=success,
+            registration=True,
+        ),
+        response.status_code,
+    )
+
+
+# ==============================
 # FEATURE (list invites)
 #
 # retrieve a list with all events you are invited to and have not yet responded to
-#==============================
-@app.route('/invites', methods=['GET'])
+# ==============================
+@app.route("/invites", methods=["GET"])
 def invites():
-    response = requests.get(f"{INVITATIONS_SERVICE_URL}/invitations/", json={"invitee": username, "status": "Pending"})
+    response = requests.get(
+        f"{INVITATIONS_SERVICE_URL}/invitations/",
+        json={"invitee": username, "status": "Pending"},
+    )
 
     if response.status_code != 200:
         return make_response(response.content, response.status_code)
-    
-    my_invites = response.json().get('invitations', [])
+
+    my_invites = response.json().get("invitations", [])
     invites = []
 
     for invite in my_invites:
-        event_id = invite['event_id']
-        event_response = requests.get(f"{EVENTS_SERVICE_URL}/events/", json={"id": event_id})
+        event_id = invite["event_id"]
+        event_response = requests.get(
+            f"{EVENTS_SERVICE_URL}/events/", json={"id": event_id}
+        )
 
         if event_response.status_code == 200:
-            event = event_response.json().get('events', [])[0] 
-            invites.append((event_id, event['title'], event['date'], event['organizer'], event['is_public']))
+            event = event_response.json().get("events", [])[0]
+            invites.append(
+                (
+                    event_id,
+                    event["title"],
+                    event["date"],
+                    event["organizer"],
+                    event["is_public"],
+                )
+            )
         else:
             return make_response(event_response.content, event_response.status_code)
 
-    return make_response(render_template('invites.html', username=username, password=password, invites=invites), response.status_code)
+    return make_response(
+        render_template(
+            "invites.html", username=username, password=password, invites=invites
+        ),
+        response.status_code,
+    )
 
-@app.route('/invites', methods=['POST'])
+
+@app.route("/invites", methods=["POST"])
 def process_invite():
-    eventId, status = request.json['event'], request.json['status']
+    eventId, status = request.json["event"], request.json["status"]
 
-    #=======================
+    # =======================
     # FEATURE (process invite)
     #
     # process an invite (accept, maybe, don't accept)
-    #=======================
+    # =======================
 
-    pass # TODO: send to microservice
+    response = requests.patch(
+        f"{INVITATIONS_SERVICE_URL}/invitations/{eventId}/{username}",
+        json={"status": status, "invitee": username, "event_id": eventId},
+    )
+    pass  # TODO: send to microservice
 
-    return redirect('/invites')
+    return redirect("/invites")
+
 
 @app.route("/logout")
 def logout():
@@ -325,4 +415,4 @@ def logout():
 
     username = None
     password = None
-    return redirect('/')
+    return redirect("/")
