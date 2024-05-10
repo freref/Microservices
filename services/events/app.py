@@ -5,6 +5,7 @@ import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
 from fastapi import FastAPI, Body
+from typing import Optional
 
 app = FastAPI()
 
@@ -16,7 +17,13 @@ class Event(BaseModel):
     is_public: bool
 
 class EventRequest(BaseModel):
-    is_public: bool
+    is_public: Optional[bool] = None
+    class Config:
+        schema_extra = {
+            "example": {
+                "is_public": True,
+            }
+        }
 
 def get_db_connection():
     try:
@@ -60,9 +67,20 @@ async def get_events(event_request: EventRequest):
     if conn is None:
         return JSONResponse(content={"error": "Unable to connect to the database"}, status_code=500)
     
+    query = "SELECT id, TO_CHAR(date, 'YYYY-MM-DD') as date, organizer, title, description, is_public FROM events"
+    params = []
+    conditions = []
+    
+    if event_request.is_public is not None:
+        conditions.append("is_public = %s")
+        params.append(event_request.is_public)
+    
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+
     cur = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cur.execute("SELECT id, TO_CHAR(date, 'YYYY-MM-DD') as date, organizer, title, description, is_public FROM events WHERE is_public = %s", (event_request.is_public,))
+        cur.execute(query, tuple(params))
         events = cur.fetchall()
         return JSONResponse(content={"events": events}, status_code=200)
     except psycopg2.Error as error:

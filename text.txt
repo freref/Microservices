@@ -7,3 +7,6 @@ http://localhost:5002/docs/
 
 events:
 http://localhost:5003/docs/
+
+invitations:
+http://localhost:5004/docs/
