@@ -43,7 +43,7 @@ async def create_event(event: Event):
         )
         event_id = cur.fetchone()[0]
         conn.commit()
-        return JSONResponse(content={"message": "Event created successfully", "event_id": event_id}, status_code=200)
+        return JSONResponse(content={"message": "Event created successfully", "event_id": event_id}, status_code=201)
     except psycopg2.Error as error:
         conn.rollback()
         return JSONResponse(content={"error": "Failed to create event", "detail": str(error)}, status_code=400)

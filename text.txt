@@ -1,8 +1,9 @@
+AIP DOCS LOCATIONS
 gui:
-http://localhost:5001/apidocs/
+http://localhost:5001/docs/
 
 auth:
-http://localhost:5002/docs
+http://localhost:5002/docs/
 
 events:
-http://localhost:5003/docs
+http://localhost:5003/docs/

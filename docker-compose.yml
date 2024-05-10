@@ -37,7 +37,7 @@ services:
     depends_on:
       - events_persistence
     environment:
-      - POSTGRES_USER=event
+      - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
       - DATABASE_HOST=events_persistence
   

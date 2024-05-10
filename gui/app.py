@@ -2,8 +2,23 @@ from flask import Flask, render_template, redirect, request, url_for, make_respo
 import requests
 from flasgger import Swagger
 
+swagger_config = {
+    "headers": [],
+    "specs": [
+        {
+            "endpoint": 'apispec_1',
+            "route": '/apispec_1.json',
+            "rule_filter": lambda rule: True,
+            "model_filter": lambda tag: True,
+        }
+    ],
+    "static_url_path": "/flasgger_static",
+    "swagger_ui": True,
+    "specs_route": "/docs/"
+}
+
 app = Flask(__name__)
-swagger = Swagger(app)
+swagger = Swagger(app, config=swagger_config)
 
 AUTH_SERVICE_URL = "http://auth:5000"
 EVENTS_SERVICE_URL = "http://events:5000"
@@ -44,10 +59,46 @@ def home():
         public_events = [('Test event', 'Tomorrow', 'Benjamin')]  # TODO: call
 
         return render_template('home.html', username=username, password=password, events = public_events)
-
-
+    
+#==========================
+# FEATURE (create an event)
+#
+# Given some data, create an event and send out the invites.
+#==========================
 @app.route("/event", methods=['POST'])
 def create_event():
+    """
+    Create an event
+    ---
+    tags:
+        - Events
+    parameters:
+        - name: title
+          in: formData
+          type: string
+          required: true
+        - name: description
+          in: formData
+          type: string
+          required: true
+        - name: date
+          in: formData
+          type: string
+          required: true
+        - name: publicprivate
+          in: formData
+          type: string
+          required: true
+        - name: invites
+          in: formData
+          type: string
+          required: false
+    responses:
+        201:
+            description: Event created
+        400:
+            description: Event creation failed
+    """
     title, description, date, publicprivate, invites = request.form['title'], request.form['description'], request.form['date'], request.form['publicprivate'], request.form['invites']
 
     response = requests.post(f"{EVENTS_SERVICE_URL}/events/", json={
@@ -58,14 +109,9 @@ def create_event():
         "is_public": publicprivate == "public"
     })
 
-    
-    #==========================
-    # FEATURE (create an event)
-    #
-    # Given some data, create an event and send out the invites.
-    #==========================
+    # TODO: send invites
 
-    return redirect('/')
+    return make_response(redirect('/'), response.status_code)
 
 
 @app.route('/calendar', methods=['GET', 'POST'])
