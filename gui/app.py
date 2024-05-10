@@ -148,10 +148,11 @@ def create_event():
         if response.status_code != 201:
             return make_response(response.content, response.status_code)
 
-    response = requests.post(
-        f"{INVITATIONS_SERVICE_URL}/invitations/",
-        json={"event_id": event_id, "invitee": username, "status": "Participating"},
-    )
+    if username not in invitees:
+        response = requests.post(
+            f"{INVITATIONS_SERVICE_URL}/invitations/",
+            json={"event_id": event_id, "invitee": username, "status": "Participate"},
+        )
 
     if response.status_code != 201:
         return make_response(response.content, response.status_code)
@@ -390,21 +391,21 @@ def invites():
     )
 
 
+# =======================
+# FEATURE (process invite)
+#
+# process an invite (accept, maybe, don't accept)
+# =======================
 @app.route("/invites", methods=["POST"])
 def process_invite():
     eventId, status = request.json["event"], request.json["status"]
-
-    # =======================
-    # FEATURE (process invite)
-    #
-    # process an invite (accept, maybe, don't accept)
-    # =======================
 
     response = requests.patch(
         f"{INVITATIONS_SERVICE_URL}/invitations/{eventId}/{username}",
         json={"status": status, "invitee": username, "event_id": eventId},
     )
-    pass  # TODO: send to microservice
+    if response.status_code != 200:
+        return make_response(response.content, response.status_code)
 
     return redirect("/invites")
 

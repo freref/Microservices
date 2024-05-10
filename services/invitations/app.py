@@ -54,15 +54,13 @@ async def create_invitation(invitation: Invitation):
     cur = conn.cursor()
     try:
         cur.execute(
-            "INSERT INTO invitations (event_id, invitee, status) VALUES (%s, %s, %s) RETURNING id;",
+            "INSERT INTO invitations (event_id, invitee, status) VALUES (%s, %s, %s)",
             (invitation.event_id, invitation.invitee, invitation.status),
         )
-        invitation_id = cur.fetchone()[0]
         conn.commit()
         return JSONResponse(
             content={
                 "message": "Invitation created successfully",
-                "invitation_id": invitation_id,
             },
             status_code=201,
         )
