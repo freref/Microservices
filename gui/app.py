@@ -113,20 +113,20 @@ def create_event():
     })
 
     if (response.status_code != 201):
-        return make_response("Event creation failed", response.status_code)
+        return make_response(response.content, response.status_code)
 
-    id = response.json().get('id', None)
+    event_id = response.json().get('event_id', None)
     invitees = invites.split(';')
 
     for invitee in invitees:
         response = requests.post(f"{INVITATIONS_SERVICE_URL}/invitations/", json={
-            "event_id": id,
+            "event_id": event_id,
             "invitee": invitee,
             "status": "pending"
         })
 
         if (response.status_code != 201):
-            return make_response("Invitation failed", response.status_code)
+            return make_response(response.content, response.status_code)
     
     return redirect('/')
 

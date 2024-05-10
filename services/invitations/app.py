@@ -11,12 +11,12 @@ app = FastAPI()
 class Invitation(BaseModel):
     event_id: int
     invitee: str
-    response: str = None
+    status: str = None
 
 def get_db_connection():
     try:
         return psycopg2.connect(
-            dbname='events',
+            dbname='invitations',
             user=os.environ['POSTGRES_USER'],
             password=os.environ['POSTGRES_PASSWORD'],
             host=os.environ['DATABASE_HOST'],
@@ -36,8 +36,8 @@ async def create_invitation(invitation: Invitation):
     cur = conn.cursor()
     try:
         cur.execute(
-            "INSERT INTO invitations (event_id, invitee, response) VALUES (%s, %s, %s) RETURNING id;",
-            (invitation.event_id, invitation.invitee, invitation.response)
+            "INSERT INTO invitations (event_id, invitee, status) VALUES (%s, %s, %s) RETURNING id;",
+            (invitation.event_id, invitation.invitee, invitation.status)
         )
         invitation_id = cur.fetchone()[0]
         conn.commit()
