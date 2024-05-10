@@ -39,7 +39,7 @@ def load_from_session(key):
 
 
 def succesful_request(r):
-    return r.status_code == 200
+    return r.status_code == 200 or r.status_code == 201
 
 
 # ================================
@@ -111,9 +111,12 @@ def create_event():
         "is_public": publicprivate == "public"
     })
 
+    if (response.status_code != 201):
+        return make_response("Event creation failed", response.status_code)
+
     # TODO: send invites
 
-    return make_response(redirect('/'), response.status_code)
+    return redirect('/')
 
 
 @app.route('/calendar', methods=['GET', 'POST'])
