@@ -42,6 +42,12 @@ def succesful_request(r):
     return r.status_code == 200
 
 
+# ================================
+# FEATURE (list of public events)
+#
+# Retrieve the list of all public events. The webpage expects a list of (title, date, organizer) tuples.
+# Try to keep in mind failure of the underlying microservice
+# =================================
 @app.route("/")
 def home():
     global username
@@ -49,16 +55,12 @@ def home():
     if username is None:
         return render_template('login.html', username=username, password=password)
     else:
-        # ================================
-        # FEATURE (list of public events)
-        #
-        # Retrieve the list of all public events. The webpage expects a list of (title, date, organizer) tuples.
-        # Try to keep in mind failure of the underlying microservice
-        # =================================
+        response = requests.get(f"{EVENTS_SERVICE_URL}/events/", json={"is_public": True})
+        # Destructure the response to get the events
+        events = response.json().get('events', [])
+        public_events = [(event['title'], event['date'], event['organizer']) for event in events]
 
-        public_events = [('Test event', 'Tomorrow', 'Benjamin')]  # TODO: call
-
-        return render_template('home.html', username=username, password=password, events = public_events)
+        return make_response(render_template('home.html', username=username, password=password, events = public_events), response.status_code)
     
 #==========================
 # FEATURE (create an event)

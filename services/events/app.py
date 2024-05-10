@@ -15,6 +15,9 @@ class Event(BaseModel):
     description: str = None
     is_public: bool
 
+class EventRequest(BaseModel):
+    is_public: bool
+
 def get_db_connection():
     try:
         return psycopg2.connect(
@@ -47,6 +50,23 @@ async def create_event(event: Event):
     except psycopg2.Error as error:
         conn.rollback()
         return JSONResponse(content={"error": "Failed to create event", "detail": str(error)}, status_code=400)
+    finally:
+        cur.close()
+        conn.close()
+
+@app.get("/events/")
+async def get_events(event_request: EventRequest):
+    conn = get_db_connection()
+    if conn is None:
+        return JSONResponse(content={"error": "Unable to connect to the database"}, status_code=500)
+    
+    cur = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cur.execute("SELECT id, TO_CHAR(date, 'YYYY-MM-DD') as date, organizer, title, description, is_public FROM events WHERE is_public = %s", (event_request.is_public,))
+        events = cur.fetchall()
+        return JSONResponse(content={"events": events}, status_code=200)
+    except psycopg2.Error as error:
+        return JSONResponse(content={"error": "Failed to fetch events", "detail": str(error)}, status_code=400)
     finally:
         cur.close()
         conn.close()
