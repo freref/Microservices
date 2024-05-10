@@ -122,11 +122,20 @@ def create_event():
         response = requests.post(f"{INVITATIONS_SERVICE_URL}/invitations/", json={
             "event_id": event_id,
             "invitee": invitee,
-            "status": "pending"
+            "status": "Pending"
         })
 
         if (response.status_code != 201):
             return make_response(response.content, response.status_code)
+    
+    response = requests.post(f"{INVITATIONS_SERVICE_URL}/invitations/", json={
+        "event_id": event_id,
+        "invitee": username,
+        "status": "Participating"
+    })
+
+    if (response.status_code != 201):
+        return make_response(response.content, response.status_code)
     
     return redirect('/')
 
@@ -276,7 +285,7 @@ def register():
 #==============================
 @app.route('/invites', methods=['GET'])
 def invites():
-    response = requests.get(f"{INVITATIONS_SERVICE_URL}/invitations/", json={"invitee": username, "status": "pending"})
+    response = requests.get(f"{INVITATIONS_SERVICE_URL}/invitations/", json={"invitee": username, "status": "Pending"})
 
     if response.status_code != 200:
         return make_response(response.content, response.status_code)
