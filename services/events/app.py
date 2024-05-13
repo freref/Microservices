@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 import os
@@ -16,19 +16,6 @@ class Event(BaseModel):
     title: str
     description: str = None
     is_public: bool
-
-
-class EventRequest(BaseModel):
-    is_public: Optional[bool] = None
-    id: Optional[int] = None
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "is_public": True,
-                "id": 1,
-            }
-        }
 
 
 def get_db_connection():
@@ -84,7 +71,9 @@ async def create_event(event: Event):
 
 
 @app.get("/events/")
-async def get_events(event_request: EventRequest):
+async def get_events(
+    is_public: Optional[bool] = Query(None), id: Optional[int] = Query(None)
+):
     conn = get_db_connection()
     if conn is None:
         return JSONResponse(
@@ -95,13 +84,13 @@ async def get_events(event_request: EventRequest):
     params = []
     conditions = []
 
-    if event_request.is_public is not None:
+    if is_public is not None:
         conditions.append("is_public = %s")
-        params.append(event_request.is_public)
+        params.append(is_public)
 
-    if event_request.id is not None:
+    if id is not None:
         conditions.append("id = %s")
-        params.append(event_request.id)
+        params.append(id)
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)

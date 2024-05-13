@@ -58,9 +58,8 @@ def home():
     if username is None:
         return render_template("login.html", username=username, password=password)
     else:
-        response = requests.get(
-            f"{EVENTS_SERVICE_URL}/events/", json={"is_public": True}
-        )
+        params = {"is_public": True}
+        response = requests.get(f"{EVENTS_SERVICE_URL}/events/", params=params)
         # Destructure the response to get the events
         events = response.json().get("events", [])
         public_events = [
@@ -148,6 +147,7 @@ def create_event():
         if response.status_code != 201:
             return make_response(response.content, response.status_code)
 
+    # Invite yourself and set status to Participate
     if username not in invitees:
         response = requests.post(
             f"{INVITATIONS_SERVICE_URL}/invitations/",
@@ -160,27 +160,69 @@ def create_event():
     return redirect("/")
 
 
+# ================================
+# FEATURE (calendar based on username)
+#
+# Retrieve the calendar of a certain user. The webpage expects a list of (id, title, date, organizer, status, Public/Private) tuples.
+# Try to keep in mind failure of the underlying microservice
+# =================================
 @app.route("/calendar", methods=["GET", "POST"])
 def calendar():
     calendar_user = (
         request.form["calendar_user"] if "calendar_user" in request.form else username
     )
 
-    # ================================
-    # FEATURE (calendar based on username)
-    #
-    # Retrieve the calendar of a certain user. The webpage expects a list of (id, title, date, organizer, status, Public/Private) tuples.
-    # Try to keep in mind failure of the underlying microservice
-    # =================================
-
     success = (
         True  # TODO: this might change depending on if the calendar is shared with you
     )
 
+    params = {"invitee": calendar_user, "status": "Participate"}
+    participating_events = requests.get(
+        f"{INVITATIONS_SERVICE_URL}/invitations/", params=params
+    )
+
+    if participating_events.status_code != 200:
+        # XXX error?
+        participating_events = []
+
+    params = {"invitee": calendar_user, "status": "Maybe Participate"}
+    maybe_participating_events = requests.get(
+        f"{INVITATIONS_SERVICE_URL}/invitations/",
+        params=params,
+    )
+
+    if maybe_participating_events.status_code != 200:
+        # XXX error?
+        maybe_participating_events = []
+
+    my_invites = participating_events.json().get(
+        "invitations", []
+    ) + maybe_participating_events.json().get("invitations", [])
+
     if success:
-        calendar = [
-            (1, "Test event", "Tomorrow", "Benjamin", "Going", "Public")
-        ]  # TODO: call
+        calendar = []
+        for invite in my_invites:
+            event_id = invite["event_id"]
+            params = {"id": event_id}
+            event_response = requests.get(
+                f"{EVENTS_SERVICE_URL}/events/",
+                params=params,
+            )
+
+            if event_response.status_code == 200:
+                event = event_response.json().get("events", [])[0]
+                calendar.append(
+                    (
+                        event_id,
+                        event["title"],
+                        event["date"],
+                        event["organizer"],
+                        invite["status"],
+                        "Public" if event["is_public"] else "Private",
+                    )
+                )
+            else:
+                return make_response(event_response.content, event_response.status_code)
     else:
         calendar = None
 
@@ -217,26 +259,49 @@ def share():
     )
 
 
+# ================================
+# FEATURE (event details)
+#
+# Retrieve additional information for a certain event parameterized by an id. The webpage expects a (title, date, organizer, status, (invitee, participating)) tuples.
+# Try to keep in mind failure of the underlying microservice
+# =================================
 @app.route("/event/<eventid>")
 def view_event(eventid):
-
-    # ================================
-    # FEATURE (event details)
-    #
-    # Retrieve additional information for a certain event parameterized by an id. The webpage expects a (title, date, organizer, status, (invitee, participating)) tuples.
-    # Try to keep in mind failure of the underlying microservice
-    # =================================
-
     success = True  # TODO: this might change depending on whether you can see the event (public, or private but invited)
 
+    params = {"event_id": eventid}
+    invitations_response = requests.get(
+        f"{INVITATIONS_SERVICE_URL}/invitations/",
+        params=params,
+    )
+
+    if invitations_response.status_code != 200:
+        # XXX error?
+        invitations = []
+    else:
+        invitations = invitations_response.json().get("invitations", [])
+
+    params = {"id": eventid}
+    event_response = requests.get(
+        f"{EVENTS_SERVICE_URL}/events/",
+        params=params,
+    )
+
+    if event_response.status_code != 200:
+        # XXX error?
+        make_response(event_response.content, event_response.status_code)
+    else:
+        event = event_response.json().get("events", [])[0]
+
     if success:
-        event = [
-            "Test event",
-            "Tomorrow",
-            "Benjamin",
-            "Public",
-            [["Benjamin", "Participating"], ["Fabian", "Maybe Participating"]],
-        ]  # TODO: populate this with details from the actual event
+        # event info is a list of [title, date, organizer, status, [(invitee, participating)]]
+        event = (
+            event["title"],
+            event["date"],
+            event["organizer"],
+            "Public" if event["is_public"] else "Private",
+            [(invite["invitee"], invite["status"]) for invite in invitations],
+        )
     else:
         event = None  # No success, so don't fetch the data
 
@@ -352,21 +417,26 @@ def register():
 # ==============================
 @app.route("/invites", methods=["GET"])
 def invites():
+    params = {"invitee": username, "status": "Pending"}
     response = requests.get(
         f"{INVITATIONS_SERVICE_URL}/invitations/",
-        json={"invitee": username, "status": "Pending"},
+        params=params,
     )
 
     if response.status_code != 200:
-        return make_response(response.content, response.status_code)
+        my_invites = []
+        # return make_response(response.content, response.status_code)
+    else:
+        my_invites = response.json().get("invitations", [])
 
-    my_invites = response.json().get("invitations", [])
     invites = []
 
     for invite in my_invites:
         event_id = invite["event_id"]
+        params = {"id": event_id}
         event_response = requests.get(
-            f"{EVENTS_SERVICE_URL}/events/", json={"id": event_id}
+            f"{EVENTS_SERVICE_URL}/events/",
+            params=params,
         )
 
         if event_response.status_code == 200:
@@ -380,8 +450,9 @@ def invites():
                     event["is_public"],
                 )
             )
-        else:
-            return make_response(event_response.content, event_response.status_code)
+        # XXX
+        # else:
+        #    return make_response(event_response.content, event_response.status_code)
 
     return make_response(
         render_template(
@@ -400,10 +471,12 @@ def invites():
 def process_invite():
     eventId, status = request.json["event"], request.json["status"]
 
+    params = {"invitee": username, "event": eventId, "status": status}
     response = requests.patch(
         f"{INVITATIONS_SERVICE_URL}/invitations/{eventId}/{username}",
-        json={"status": status, "invitee": username, "event_id": eventId},
+        params=params,
     )
+    # XXX
     if response.status_code != 200:
         return make_response(response.content, response.status_code)
 

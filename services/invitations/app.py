@@ -1,10 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from pydantic import BaseModel
 from fastapi.responses import JSONResponse
 import os
 import psycopg2
 from psycopg2.extras import RealDictCursor
-from fastapi import FastAPI, Body
 from typing import Optional
 
 app = FastAPI()
@@ -19,11 +18,14 @@ class Invitation(BaseModel):
 class InvitationRequest(BaseModel):
     invitee: Optional[str] = None
     status: Optional[str] = None
+    event: Optional[int] = None
 
     class Config:
         schema_extra = {
             "example": {
                 "invitee": "user1",
+                "status": "Pending",
+                "event": 1,
             }
         }
 
@@ -43,6 +45,7 @@ def get_db_connection():
         return None
 
 
+# Create an invitation
 @app.post("/invitations/")
 async def create_invitation(invitation: Invitation):
     conn = get_db_connection()
@@ -75,8 +78,13 @@ async def create_invitation(invitation: Invitation):
         conn.close()
 
 
+# Get invitations based on the query parameters
 @app.get("/invitations/")
-async def get_invitations(invitation_request: InvitationRequest):
+async def get_invitations(
+    invitee: Optional[str] = Query(None),
+    status: Optional[str] = Query(None),
+    event: Optional[int] = Query(None),
+):
     conn = get_db_connection()
     if conn is None:
         return JSONResponse(
@@ -87,13 +95,17 @@ async def get_invitations(invitation_request: InvitationRequest):
     params = []
     conditions = []
 
-    if invitation_request.invitee is not None:
+    if invitee is not None:
         conditions.append("invitee = %s")
-        params.append(invitation_request.invitee)
+        params.append(invitee)
 
-    if invitation_request.status is not None:
+    if status is not None:
         conditions.append("status = %s")
-        params.append(invitation_request.status)
+        params.append(status)
+
+    if event is not None:
+        conditions.append("event_id = %s")
+        params.append(event)
 
     if conditions:
         query += " WHERE " + " AND ".join(conditions)
@@ -114,7 +126,8 @@ async def get_invitations(invitation_request: InvitationRequest):
         conn.close()
 
 
-@app.put("/invitations/{event_id}/{invitee}")
+# Update invitation status of an invitee for a specific event
+@app.patch("/invitations/{event_id}/{invitee}")
 async def update_invitation_status(event_id: int, invitee: str, status: str):
     conn = get_db_connection()
     if conn is None:
