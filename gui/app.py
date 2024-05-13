@@ -269,7 +269,7 @@ def share():
 def view_event(eventid):
     success = True  # TODO: this might change depending on whether you can see the event (public, or private but invited)
 
-    params = {"event_id": eventid}
+    params = {"event": eventid}
     invitations_response = requests.get(
         f"{INVITATIONS_SERVICE_URL}/invitations/",
         params=params,
