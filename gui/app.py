@@ -478,8 +478,6 @@ def process_invite():
     if response.status_code != 200:
         return make_response(response.content, response.status_code)
 
-    return make_response(render_template("invites.html", username=username, password=password), response.status_code)
-    # maybe try to render template
     return redirect("/invites")
 
 
