@@ -9,9 +9,11 @@ from typing import Optional, List
 
 app = FastAPI()
 
+
 class SharedWithUpdate(BaseModel):
     owner: str
     shared_with: str
+
 
 def get_db_connection():
     try:
@@ -27,6 +29,7 @@ def get_db_connection():
         print(e)
         return None
 
+
 @app.put("/share")
 async def share_calendar(shared_with_update: SharedWithUpdate):
     conn = get_db_connection()
@@ -35,29 +38,38 @@ async def share_calendar(shared_with_update: SharedWithUpdate):
 
     try:
         with conn.cursor(cursor_factory=RealDictCursor) as cursor:
-            cursor.execute("SELECT * FROM calendars WHERE owner = %s", (shared_with_update.owner,))
+            cursor.execute(
+                "SELECT * FROM calendars WHERE owner = %s", (shared_with_update.owner,)
+            )
             owner_record = cursor.fetchone()
 
             if owner_record:
-                updated_shared_with = owner_record['shared_with'] + [shared_with_update.shared_with]
+                updated_shared_with = owner_record["shared_with"] + [
+                    shared_with_update.shared_with
+                ]
                 cursor.execute(
                     "UPDATE calendars SET shared_with = %s WHERE owner = %s",
-                    (updated_shared_with, shared_with_update.owner)
+                    (updated_shared_with, shared_with_update.owner),
                 )
             else:
                 cursor.execute(
                     "INSERT INTO calendars (owner, shared_with) VALUES (%s, %s)",
-                    (shared_with_update.owner, [shared_with_update.shared_with])
+                    (shared_with_update.owner, [shared_with_update.shared_with]),
                 )
 
             conn.commit()
-            return JSONResponse(content={"message": "Calendar shared successfully"}, status_code=200)
+            return JSONResponse(
+                content={"message": "Calendar shared successfully"}, status_code=200
+            )
 
     except Exception as e:
         conn.rollback()
-        raise HTTPException(status_code=500, detail="An error occurred while sharing the calendar")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while sharing the calendar"
+        )
     finally:
         conn.close()
+
 
 @app.get("/calendars")
 async def get_calendars(owner: str):
@@ -72,8 +84,12 @@ async def get_calendars(owner: str):
             if record:
                 return JSONResponse(content=record, status_code=200)
             else:
-                return JSONResponse(content={"message": "Calendar not found"}, status_code=404)
+                return JSONResponse(
+                    content={"message": "Calendar not found"}, status_code=404
+                )
     except Exception as e:
-        raise HTTPException(status_code=500, detail="An error occurred while getting the calendar")
+        raise HTTPException(
+            status_code=500, detail="An error occurred while getting the calendar"
+        )
     finally:
         conn.close()
