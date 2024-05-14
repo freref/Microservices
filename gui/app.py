@@ -62,8 +62,14 @@ def home():
         params = {"is_public": True}
         response = requests.get(f"{EVENTS_SERVICE_URL}/events/", params=params)
 
+        # if the request fails, return the home page with an empty list of events
         if response.status_code != 200:
-            return make_response(response.content, response.status_code)
+            return make_response(
+                render_template(
+                    "home.html", username=username, password=password, events=[]
+                ),
+                response.status_code,
+            )
 
         # Destructure the response to get the events
         events = response.json().get("events", [])
@@ -181,7 +187,8 @@ def calendar():
         calendar_response = requests.get(
             f"{CALENDARS_SERVICE_URL}/calendars/", params={"owner": calendar_user}
         )
-
+        
+        # if the request fails, return the calendar page with an empty list of events
         if calendar_response.status_code != 200:
             return render_template(
                 "calendar.html",
@@ -202,7 +209,9 @@ def calendar():
     )
 
     if participating_events.status_code != 200:
-        make_response(participating_events.content, participating_events.status_code)
+        my_invites = []
+    else:
+        my_invites = participating_events.json().get("invitations", [])
 
     params = {"invitee": calendar_user, "status": "Maybe Participate"}
     maybe_participating_events = requests.get(
@@ -211,13 +220,9 @@ def calendar():
     )
 
     if maybe_participating_events.status_code != 200:
-        make_response(
-            maybe_participating_events.content, maybe_participating_events.status_code
-        )
-
-    my_invites = participating_events.json().get(
-        "invitations", []
-    ) + maybe_participating_events.json().get("invitations", [])
+        my_invites += []
+    else:
+        my_invites += maybe_participating_events.json().get("invitations", [])
 
     if success:
         calendar = []
@@ -241,8 +246,6 @@ def calendar():
                         "Public" if event["is_public"] else "Private",
                     )
                 )
-            else:
-                return make_response(event_response.content, event_response.status_code)
     else:
         calendar = None
 
@@ -299,9 +302,10 @@ def view_event(eventid):
     )
 
     if invitations_response.status_code != 200:
-        make_response(invitations_response.content, invitations_response.status_code)
-
-    invitations = invitations_response.json().get("invitations", [])
+        invitations = []
+    else:
+        invitations = invitations_response.json().get("invitations", [])
+    
     success = username in [invite["invitee"] for invite in invitations]
 
     params = {"id": eventid}
@@ -311,9 +315,10 @@ def view_event(eventid):
     )
 
     if event_response.status_code != 200:
-        make_response(event_response.content, event_response.status_code)
-
-    event = event_response.json().get("events", [])[0]
+        event = {}
+    else:
+        event = event_response.json().get("events", [])[0]
+    
     success = success or event["is_public"]
 
     if success:
@@ -447,9 +452,9 @@ def invites():
     )
 
     if response.status_code != 200:
-        return make_response(response.content, response.status_code)
-
-    my_invites = response.json().get("invitations", [])
+        my_invites = []
+    else:
+        my_invites = response.json().get("invitations", [])
 
     invites = []
     for invite in my_invites:
@@ -471,8 +476,6 @@ def invites():
                     event["is_public"],
                 )
             )
-        else:
-            return make_response(event_response.content, event_response.status_code)
 
     return make_response(
         render_template(
@@ -492,12 +495,10 @@ def process_invite():
     eventId, status = request.json["event"], request.json["status"]
 
     params = {"invitee": username, "event": eventId, "status": status}
-    response = requests.patch(
+    requests.patch(
         f"{INVITATIONS_SERVICE_URL}/invitations/{eventId}/{username}",
         params=params,
     )
-    if response.status_code != 200:
-        return make_response(response.content, response.status_code)
 
     return redirect("/invites")
 
