@@ -78,7 +78,7 @@ def home():
                 password=password,
                 events=public_events
             ),
-            response.status_code,
+            200,
         )
 
 @app.route("/event", methods=["POST"])
@@ -404,7 +404,7 @@ def login():
             success=success,
             login=True,
         ),
-        response.status_code,
+        200,
     )
 
 @app.route("/register", methods=["POST"])
@@ -464,7 +464,7 @@ def register():
             success=success,
             registration=True,
         ),
-        response.status_code,
+        200,
     )
 
 @app.route("/invites", methods=["GET"])
@@ -512,7 +512,7 @@ def invites():
         render_template(
             "invites.html", username=username, password=password, invites=invites
         ),
-        response.status_code,
+        200,
     )
 
 @app.route("/invites", methods=["POST"])
