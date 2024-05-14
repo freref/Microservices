@@ -31,14 +31,20 @@ password = None
 
 session_data = dict()
 
+
 def save_to_session(key, value):
     session_data[key] = value
 
+
 def load_from_session(key):
-    return session_data.pop(key) if key in session_data else None  # Pop to ensure that it is only used once
+    return (
+        session_data.pop(key) if key in session_data else None
+    )  # Pop to ensure that it is only used once
+
 
 def succesful_request(r):
     return r.status_code == 200 or r.status_code == 201
+
 
 @app.route("/")
 def home():
@@ -73,13 +79,11 @@ def home():
 
         return make_response(
             render_template(
-                "home.html",
-                username=username,
-                password=password,
-                events=public_events
+                "home.html", username=username, password=password, events=public_events
             ),
             200,
         )
+
 
 @app.route("/event", methods=["POST"])
 def create_event():
@@ -149,7 +153,11 @@ def create_event():
             try:
                 response = requests.post(
                     f"{INVITATIONS_SERVICE_URL}/invitations/",
-                    json={"event_id": event_id, "invitee": invitee, "status": "Pending"},
+                    json={
+                        "event_id": event_id,
+                        "invitee": invitee,
+                        "status": "Pending",
+                    },
                 )
                 if response.status_code != 201:
                     return redirect("/")
@@ -161,12 +169,17 @@ def create_event():
         try:
             response = requests.post(
                 f"{INVITATIONS_SERVICE_URL}/invitations/",
-                json={"event_id": event_id, "invitee": username, "status": "Participate"},
+                json={
+                    "event_id": event_id,
+                    "invitee": username,
+                    "status": "Participate",
+                },
             )
         finally:
             return redirect("/")
-    
+
     return redirect("/")
+
 
 @app.route("/calendar", methods=["GET", "POST"])
 def calendar():
@@ -268,12 +281,14 @@ def calendar():
         success=success,
     )
 
+
 @app.route("/share", methods=["GET"])
 def share_page():
     global username, password
     return render_template(
         "share.html", username=username, password=password, success=None
     )
+
 
 @app.route("/share", methods=["POST"])
 def share():
@@ -293,6 +308,7 @@ def share():
         "share.html", username=username, password=password, success=success
     )
 
+
 @app.route("/event/<eventid>")
 def view_event(eventid):
     global username, password
@@ -309,7 +325,7 @@ def view_event(eventid):
             invitations = invitations_response.json().get("invitations", [])
     except:
         invitations = []
-    
+
     success = username in [invite["invitee"] for invite in invitations]
 
     params = {"id": eventid}
@@ -321,13 +337,21 @@ def view_event(eventid):
         )
         if event_response.status_code != 200:
             return render_template(
-            "event.html", username=username, password=password, event={}, success=success
-        )
+                "event.html",
+                username=username,
+                password=password,
+                event={},
+                success=success,
+            )
         else:
             event = event_response.json().get("events", [])[0]
     except:
         return render_template(
-            "event.html", username=username, password=password, event={}, success=success
+            "event.html",
+            username=username,
+            password=password,
+            event={},
+            success=success,
         )
     success = success or event["is_public"]
 
@@ -346,6 +370,7 @@ def view_event(eventid):
     return render_template(
         "event.html", username=username, password=password, event=event, success=success
     )
+
 
 @app.route("/login", methods=["POST"])
 def login():
@@ -407,6 +432,7 @@ def login():
         200,
     )
 
+
 @app.route("/register", methods=["POST"])
 def register():
     """
@@ -467,6 +493,7 @@ def register():
         200,
     )
 
+
 @app.route("/invites", methods=["GET"])
 def invites():
     global username, password
@@ -515,6 +542,7 @@ def invites():
         200,
     )
 
+
 @app.route("/invites", methods=["POST"])
 def process_invite():
     global username, password
@@ -531,6 +559,7 @@ def process_invite():
 
     return redirect("/invites")
 
+
 @app.route("/logout")
 def logout():
     global username, password
@@ -538,6 +567,7 @@ def logout():
     username = None
     password = None
     return redirect("/")
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000)
