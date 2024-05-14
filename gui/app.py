@@ -60,6 +60,10 @@ def home():
     else:
         params = {"is_public": True}
         response = requests.get(f"{EVENTS_SERVICE_URL}/events/", params=params)
+
+        if response.status_code != 200:
+            return make_response(response.content, response.status_code)
+
         # Destructure the response to get the events
         events = response.json().get("events", [])
         public_events = [
@@ -182,8 +186,7 @@ def calendar():
     )
 
     if participating_events.status_code != 200:
-        # XXX error?
-        participating_events = []
+        make_response(participating_events.content, participating_events.status_code)
 
     params = {"invitee": calendar_user, "status": "Maybe Participate"}
     maybe_participating_events = requests.get(
@@ -192,8 +195,9 @@ def calendar():
     )
 
     if maybe_participating_events.status_code != 200:
-        # XXX error?
-        maybe_participating_events = []
+        make_response(
+            maybe_participating_events.content, maybe_participating_events.status_code
+        )
 
     my_invites = participating_events.json().get(
         "invitations", []
@@ -276,10 +280,9 @@ def view_event(eventid):
     )
 
     if invitations_response.status_code != 200:
-        # XXX error?
-        invitations = []
-    else:
-        invitations = invitations_response.json().get("invitations", [])
+        make_response(invitations_response.content, invitations_response.status_code)
+
+    invitations = invitations_response.json().get("invitations", [])
 
     params = {"id": eventid}
     event_response = requests.get(
@@ -288,10 +291,9 @@ def view_event(eventid):
     )
 
     if event_response.status_code != 200:
-        # XXX error?
         make_response(event_response.content, event_response.status_code)
-    else:
-        event = event_response.json().get("events", [])[0]
+
+    event = event_response.json().get("events", [])[0]
 
     if success:
         # event info is a list of [title, date, organizer, status, [(invitee, participating)]]
@@ -424,13 +426,11 @@ def invites():
     )
 
     if response.status_code != 200:
-        my_invites = []
-        # return make_response(response.content, response.status_code)
-    else:
-        my_invites = response.json().get("invitations", [])
+        return make_response(response.content, response.status_code)
+
+    my_invites = response.json().get("invitations", [])
 
     invites = []
-
     for invite in my_invites:
         event_id = invite["event_id"]
         params = {"id": event_id}
@@ -450,9 +450,8 @@ def invites():
                     event["is_public"],
                 )
             )
-        # XXX
-        # else:
-        #    return make_response(event_response.content, event_response.status_code)
+        else:
+           return make_response(event_response.content, event_response.status_code)
 
     return make_response(
         render_template(
@@ -476,10 +475,11 @@ def process_invite():
         f"{INVITATIONS_SERVICE_URL}/invitations/{eventId}/{username}",
         params=params,
     )
-    # XXX
     if response.status_code != 200:
         return make_response(response.content, response.status_code)
 
+    return make_response(render_template("invites.html", username=username, password=password), response.status_code)
+    # maybe try to render template
     return redirect("/invites")
 
 
