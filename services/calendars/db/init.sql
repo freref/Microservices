@@ -1,5 +1,5 @@
-CREATE DATABASE calendar;
-\c calendar;
+CREATE DATABASE calendars;
+\c calendars;
 
 CREATE TABLE calendars (
     owner VARCHAR(100) PRIMARY KEY,

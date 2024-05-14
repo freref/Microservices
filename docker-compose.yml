@@ -74,18 +74,18 @@ services:
       - invitations_persistence-data:/var/lib/postgresql/data
       - ./services/invitations/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
-  calendar:
-    build: ./services/calendar
+  calendars:
+    build: ./services/calendars
     ports:
       - 5005:5000
     depends_on:
-      - calendar_persistence
+      - calendars_persistence
     environment:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
-      - DATABASE_HOST=calendar_persistence
+      - DATABASE_HOST=calendars_persistence
 
-  calendar_persistence:
+  calendars_persistence:
     image: postgres:13
     ports:
       - 5435:5432
@@ -93,11 +93,11 @@ services:
       - POSTGRES_USER=user
       - POSTGRES_PASSWORD=password
     volumes:
-      - calendar_persistence-data:/var/lib/postgresql/data
-      - ./services/calendar/db/init.sql:/docker-entrypoint-initdb.d/init.sql
+      - calendars_persistence-data:/var/lib/postgresql/data
+      - ./services/calendars/db/init.sql:/docker-entrypoint-initdb.d/init.sql
 
 volumes:
   auth_persistence-data:
   events_persistence-data:
   invitations_persistence-data:
-  calendar_persistence-data:
+  calendars_persistence-data:

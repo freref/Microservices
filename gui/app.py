@@ -23,6 +23,7 @@ swagger = Swagger(app, config=swagger_config)
 AUTH_SERVICE_URL = "http://auth:5000"
 EVENTS_SERVICE_URL = "http://events:5000"
 INVITATIONS_SERVICE_URL = "http://invitations:5000"
+CALENDARS_SERVICE_URL = "http://calendars:5000"
 
 # The Username & Password of the currently logged-in User, this is used as a pseudo-cookie, as such this is not session-specific.
 username = None
@@ -176,9 +177,24 @@ def calendar():
         request.form["calendar_user"] if "calendar_user" in request.form else username
     )
 
-    success = (
-        True  # TODO: this might change depending on if the calendar is shared with you
-    )
+    if calendar_user is not username:
+        calendar_response = requests.get(
+            f"{CALENDARS_SERVICE_URL}/calendars/", params={"owner": calendar_user}
+        )
+
+        if calendar_response.status_code != 200:
+            return render_template(
+                "calendar.html",
+                username=username,
+                password=password,
+                calendar_user=calendar_user,
+                calendar=[],
+                success=False,
+            )
+
+        success = username in calendar_response.json().get("shared_with", [])
+    else:
+        success = True
 
     params = {"invitee": calendar_user, "status": "Participate"}
     participating_events = requests.get(
@@ -247,17 +263,22 @@ def share_page():
     )
 
 
+# ========================================
+# FEATURE (share a calendar with a user)
+#
+# Share your calendar with a certain user. Return success = true / false depending on whether the sharing is succesful.
+# ========================================
 @app.route("/share", methods=["POST"])
 def share():
     share_user = request.form["username"]
 
-    # ========================================
-    # FEATURE (share a calendar with a user)
-    #
-    # Share your calendar with a certain user. Return success = true / false depending on whether the sharing is succesful.
-    # ========================================
+    response = requests.put(
+        f"{CALENDARS_SERVICE_URL}/share",
+        json={"owner": username, "shared_with": share_user},
+    )
 
-    success = True  # TODO
+    success = succesful_request(response)
+
     return render_template(
         "share.html", username=username, password=password, success=success
     )
@@ -271,8 +292,6 @@ def share():
 # =================================
 @app.route("/event/<eventid>")
 def view_event(eventid):
-    success = True  # TODO: this might change depending on whether you can see the event (public, or private but invited)
-
     params = {"event": eventid}
     invitations_response = requests.get(
         f"{INVITATIONS_SERVICE_URL}/invitations/",
@@ -283,6 +302,7 @@ def view_event(eventid):
         make_response(invitations_response.content, invitations_response.status_code)
 
     invitations = invitations_response.json().get("invitations", [])
+    success = username in [invite["invitee"] for invite in invitations]
 
     params = {"id": eventid}
     event_response = requests.get(
@@ -294,6 +314,7 @@ def view_event(eventid):
         make_response(event_response.content, event_response.status_code)
 
     event = event_response.json().get("events", [])[0]
+    success = success or event["is_public"]
 
     if success:
         # event info is a list of [title, date, organizer, status, [(invitee, participating)]]
@@ -451,7 +472,7 @@ def invites():
                 )
             )
         else:
-           return make_response(event_response.content, event_response.status_code)
+            return make_response(event_response.content, event_response.status_code)
 
     return make_response(
         render_template(
