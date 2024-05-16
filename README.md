@@ -43,7 +43,7 @@ description TEXT,
 is_public BOOLEAN NOT NULL
 ```
 ##### Reasoning
-This service holds all the necessary data for events. TODO
+The Events service manages all event-related data, allowing for efficient retrieval and creation of events. By separating event data from other concerns, it ensures that event management is scalable and independent. If this service fails, users won't be able to create or view event details.
 #### Invitations
 ##### Features
 - POST ``/invitations`` implements creating a single invite, the endpoint is repeatedly called for each use you invite when creating an event
