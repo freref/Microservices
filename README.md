@@ -70,7 +70,7 @@ shared_with VARCHAR(100)[] NOT NULL
 ##### Reasoning
 This service keeps track of whose calendars are shared with who, it is a one way relationship. When this service fails you'll default to not being able to access shared calendars, since we can't check if it is shared.
 ### Conclusion
-This decomposition of microservices is scalable, because each microservice has its own concerns. It minimizes inter-service dependencies. Allowing for the other services to stay functional if one service is overloaded.
+This decomposition of microservices is scalable, because each microservice has its own concerns. It minimizes inter-service dependencies. Allowing for the other services to stay functional if one service is overloaded. The setup ensures modularity and scalability by isolating services and databases, allowing independent scaling. Each service can be scaled horizontally by adding replicas, and the use of Docker volumes ensures data persistence.
 ## API Documentation (Swagger)
 | Service     | Location                    |
 | ----------- | --------------------------- |
